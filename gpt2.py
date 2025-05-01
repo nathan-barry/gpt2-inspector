@@ -39,8 +39,8 @@ def ffn(x, c_fc, c_proj):
     return a, o
 
 
-def attention(q, k, v, mask, debug=False):
-    if not debug:
+def attention(q, k, v, mask, idx, debug=False):
+    if not debug or idx != 0:
         return softmax(q @ k.T / np.sqrt(q.shape[-1]) + mask) @ v
     # debug
     print("    attention scores, shape =", (q @ k.T / np.sqrt(q.shape[-1])).shape)
@@ -68,7 +68,7 @@ def mha(x, c_attn, c_proj, n_head, debug=False):
             qq = np.split(q, n_head, axis=-1)[i]
             kk = np.split(k, n_head, axis=-1)[i]
             vv = np.split(v, n_head, axis=-1)[i]
-            heads.append(attention(qq, kk, vv, (1 - np.tri(x.shape[0], dtype=x.dtype)) * -1e10))
+            heads.append(attention(qq, kk, vv, (1 - np.tri(x.shape[0], dtype=x.dtype)) * -1e10, 0))
         merged = np.hstack(heads)
         return linear(merged, **c_proj)
     # debug path
@@ -83,11 +83,12 @@ def mha(x, c_attn, c_proj, n_head, debug=False):
         print_indent(t)
     heads = []
     for idx in range(n_head):
-        print(f"  head {idx}")
+        if idx == 0:
+            print(f"  head {idx}")
         qq = np.split(q, n_head, axis=-1)[idx]
         kk = np.split(k, n_head, axis=-1)[idx]
         vv = np.split(v, n_head, axis=-1)[idx]
-        out = attention(qq, kk, vv, (1 - np.tri(x.shape[0], dtype=x.dtype)) * -1e10, debug=True)
+        out = attention(qq, kk, vv, (1 - np.tri(x.shape[0], dtype=x.dtype)) * -1e10, idx, debug=True)
         heads.append(out)
     merged = np.hstack(heads)
     print("  merged heads, shape =", merged.shape)
