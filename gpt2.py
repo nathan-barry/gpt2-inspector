@@ -72,10 +72,7 @@ def mha(x, c_attn, c_proj, n_head, debug=False):
         merged = np.hstack(heads)
         return linear(merged, **c_proj)
     # debug path
-    print("  MHA combined QKV, shape =", linear(x, **c_attn).shape)
     combined = linear(x, **c_attn)
-    print("    tensor:")
-    print_indent(combined)
     q, k, v = np.split(combined, 3, axis=-1)
     for name, t in zip(["Q", "K", "V"], [q, k, v]):
         print(f"  {name} split, shape =", t.shape)
