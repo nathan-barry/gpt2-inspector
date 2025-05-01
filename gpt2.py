@@ -135,15 +135,32 @@ def transformer_block(x, block, n_head, debug=False):
     print_indent(x3)
     return x3
 
-# gpt2, generate, main below
 
 def gpt2(inputs, wte, wpe, blocks, ln_f, n_head, debug_layer=None):
     x = wte[inputs] + wpe[range(len(inputs))]
+
+    # run through each transformer block
     for i, block in enumerate(blocks):
-        is_debug = (debug_layer is not None and i == debug_layer)
+        is_debug = (debug_layer is not None and debug_layer == i)
         x = transformer_block(x, block, n_head, debug=is_debug)
         if is_debug:
             return
+
+    # debug the final layer-norm + final linear
+    if debug_layer is not None and debug_layer == len(blocks):
+        print("\n>>> Debug post-last-block")
+        # final layer norm
+        x_ln = layer_norm(x, **ln_f)
+        print("  final LayerNorm, shape =", x_ln.shape)
+        print("    tensor:")
+        print_indent(x_ln)
+        # final projection to vocab
+        logits = x_ln @ wte.T
+        print("  final linear (logits), shape =", logits.shape)
+        print("    tensor:")
+        print_indent(logits)
+        return
+
     x = layer_norm(x, **ln_f)
     return x @ wte.T
 
